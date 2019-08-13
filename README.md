@@ -1,49 +1,45 @@
-# Dockerized MNIST & Cassandra
-In this project, a journaling application that can recognize a user-uploaded image of the handwritten digit was constructed by two docker Containers: an Application Docker Container and a Database Docker Container. <br/>
+# MNIST & Cassandra in docker
+In this project, a application is built with docker that can recognize a uploaded image of the handwritten digit. <br/>
 
-While the user submits a Curl command to the designated address, the Flask Router first makes a safety check to both the command and the image file it contains. The Router then saves the image and requests the prediction from the MNIST TensorFlow model. After the result returns, the Router forwards the result to the user and submits all four data to the Cassandra Database Container through the Docker Network Bridge.<br/>
+The user can use a Curl command to the designated address in the terminal or paste the URL in the website, the flask route will invoke a mnist model to predict the digit image, it will also save the file name, request time and the predict result into a cassandra database.<br/>
 
-The Cassandra Database records the user IP address, the service request time, the predicted result, and the path to the uploaded image. Finally, the application currently uses a MNIST model trained by 10000 steps and provides the prediction service with an accuracy of 0.92.  
-
-## Network Preparation
-The two Docker Containers, Cassandra Database Container, and Application Container, are connected by the Docker Network Bridge, which allows the communication between them.<br/>
+## Build Command
+We need to build two docker containers, one for cassandra database, and the other for application.The two containers are connected by the Docker Network Bridge, which allows the communication between them.<br/>
 To construct the Docker Network Bridge, execute the following command:
 ```
 docker network create [bridge-name]
 ```
 
-## Cassandra Container Preparation
-A standard Cassandra Database image published on the Docker Hub. <br/>
-Thus the administrator can simply pull the image from Docker Hub by the following command:
+Pull the cassandra image from Docker Hub:
 ```
 docker pull Cassandra
 ```
 
-To construct the Docker Container:
+TConstruct the cassandra database container:
 ```
-docker run --name cassandra --net=[bridge-name] --net-alias=cassandra -p 9042:9042 -d cassandra:latest
-```
-
-## Application Container Preparation
-Since the application image is not available on the Docker Hub, the administrator needs to build the image from the Dockerfile, with the following command:
-```
-docker build -t [MNIST-Name]:latest .
+docker run --name cassandra --net=[bridge-name] -p 9042:9042 -d cassandra:latest
 ```
 
-To construct the Docker Container:
+Build the application image with the Dockerfile:
 ```
-docker run --name [APP-Name] --net=[bridge-name] --net-alias=[APP-Name] -d -p 8000:5000 [APP-Name]:latest
+docker build -t [imagename]:latest .
 ```
 
-## Submit Prediction
-Using following curl command to submit prediction to Application Docker Container.<br/>
-The size of testing image should be exactly 28pix * 28pix.
+Construct the application container:
+```
+docker run --name [imagename] --net=[bridge-name] -d -p 8000:5000 [v]:latest
+```
+Using a curl command to submit a predict request.<br/>
+Notice the size of image should be 28pix * 28pix.
 ```
 curl -X POST -F image=@[path_to_the_image] '[url_to_the_service]'
 
 ```
+Or you can using 0.0.0.0:8000 to view in the website, in this way you can submit the image from your folder, and you will receive the result in 0.0.0.0:8000/mnist
 
-## Local Testing
-By attaching to the Application Docker Container, a testing file "1.png" is provide, which could be used by changing [path_to_the_image] to "1.png". <br/>
-The default URL to the service is "http://localhost:5000/mnist". <br/>
-If testing out of the Docker Container, the port should be changed to 8000. (Defined in Application Container Preparation)# docker-mnist
+Checking the database with the following command:
+```
+docker exec -it cassandra cqlsh
+
+```
+
